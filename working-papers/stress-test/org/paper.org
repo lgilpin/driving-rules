@@ -1,0 +1,78 @@
+#+TITLE: A Stress Testing Framework for Cyber Physical AI
+
+* TODO 
+
+* A Brief Introduction: the Prior Reign of Formal Methods
+All error modes cannot be represented in test cases.  Testing and
+proving properties can harden these systems, but they are
+inadequate--it is impossible to "formally" test all failure modes.
+Consider a human crossing the street.  It is considered "safe" if you
+look both ways and do not detect an oncoming vehicle.  The majority of
+the time, this ensures a safe, planned trajectory to continue across
+the street.  But this protocol does not include the $6.25 \times
+10^{-7}$ chance of being struck by a local meteorite, asteroid, or
+comet impact [fn:1] Instead of building provable test cases, our
+research is a complementary approach: we propose work on /AI stress
+testing/.
+
+Stress testing is crucial for autonomous cyber physical systems in
+/open environments/.  Image recognition systems have been shown to be
+brittle and biased cite:fooled, but this is deeply troubling in the
+domain of self driving cars cite:adversary.  These mistakes and errors
+need to become test cases, similar to the types of stress testing that
+is done in consumer vehicles, aerospace systems, and commercial
+aircrafts.  
+
+We propose a stress testing threat model to build trust and security
+in cyber physial systems.  We show a proof-of-concept of an attack
+tree on an example in 
+
+** TODO Put in example
+- [ ] Some quick history  (greg)
+- [ ] Why it worked so well (greg)
+- [-] Why the technology landscape is changing (greg)
+  - [ ] The exception becomes the rule
+  - [X] We’re not in closed world simulations anymore.  Solution space
+    is not finite. [Leilani thesis re-quote]. (Leilani)
+- [-] Why we need to evolve (Leilani)
+  - [X] Application spaces of new autonomous systems
+    - [X] Failures of these systems
+    - [X] Where formal methods didn’t quite work - again exception
+      becomes the rule (Avs and another example: space, IoT: CCTV)
+      https://en.wikipedia.org/wiki/List_of_self-driving_car_fatalities
+  - [ ] Our proposal: Need to Stress Test 
+
+** Other ideas
+These are not isolated issues.  For example, there was an autonomous
+racecar that ran into a wall on its second public trial [fn:2].
+Although the error was due to a software bug: an intialization
+failure, these mistakes happen all the time.  It's impossible to test
+all failure cases. 
+
+* Previous Work
+Safety-critical systems need appropriate stress testing.  Human
+operators of machinery or cars subject to driving tests and safety
+protocols.  Autonomous operators should be subject to the same types
+of testing frameworks.  
+
+** TODO 
+- [-] What grounds are there for stress testing? (Leilani)
+  - [ ] Also might want to talk about the "exploratory" testing
+    methods in RL and relate that to stress testing.
+  - [X] Human testing in critical areas (driving tests, etc.)
+- [ ] What formal methods are good at still (Greg)
+  - [ ] Why they don’t quite work for use cases described
+
+* Types of Failures 
+* Proposal 
+* Discussion and Future Work 
+* Footnotes
+
+[fn:2]
+[[https://www.thedrive.com/news/37366/why-that-autonomous-race-car-crashed-straight-into-a-wall]].
+ 
+
+[fn:1] In 2014, Professor Stephen A. Nelson calculated the lifetime
+odds of dying from a local meteorite, asteroid, or comet impact as 1
+in 1,600,000:
+[[http://www.tulane.edu/~sanelson/Natural_Disasters/impacts.htm]].
