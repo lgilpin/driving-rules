@@ -47,10 +47,11 @@ def read_manual(state:str='MA', file_name='MA_Drivers_Manual.pdf'):
     pdfReader = PyPDF2.PdfFileReader(pdfFile)
 
     # printing number of pages in pdf file 
-    MAX_PAGES = pdfReader.numPages
+    #MAX_PAGES = pdfReader.numPages
+    MAX_PAGES = 2
     #    MAX_PAGES = 10
-    START_PAGE = 84 # This starts from the rules of the road for MA.
-    END_PAGE = MAX_PAGES-1 #START_PAGE+40 # MAX_PAGES
+    START_PAGE = 103 # This starts from the rules of the road for MA.# added change by RD start at 88
+    END_PAGE = START_PAGE+MAX_PAGES-1 #START_PAGE+40 # MAX_PAGES# testint page by page
     all_rules = []
 
     """
@@ -59,7 +60,7 @@ def read_manual(state:str='MA', file_name='MA_Drivers_Manual.pdf'):
     for page in range(START_PAGE, END_PAGE):
         pageObj = pdfReader.getPage(page)
         pageText = pageObj.extractText()
-
+        #print(pageText)
         # if page == START_PAGE:
         #     print(pageText)
         all_rules.extend(extract_if_then(pageText))
@@ -79,12 +80,15 @@ def extract_if_then(page_text: str):
     counter = 0
 
     # sometimes in reading the pdf we will get non-ascii characters
-    new_val = page_text.encode("ascii", "ignore")
+   # print(page_text.isutf8())
+    new_val = page_text.encode("utf8", "ignore")
     updated_text = new_val.decode()
     sentences = updated_text.split('.')
     for sentence in sentences:
+       
         tokens = word_tokenize(sentence.lower())
         if IF_ in tokens and len(tokens) < MAX_WORDS:
+            print("Sentence:"+sentence+"\n")
             words = [word for word in tokens if word.isalpha()]
             # TODO: check sentence
             rule = extract_rule(sentence)
@@ -151,6 +155,7 @@ def make_triples_from_phrase(phrase: str, full_phrase:str = ""):
     """
     logging.debug("  Making triples for %s"%phrase)
     if AND in phrase or OR in phrase or THAT in phrase:
+        print("and/or in phrase" + phrase)
         tokens = word_tokenize(phrase)
         for token in tokens:
             if token == AND.strip():
