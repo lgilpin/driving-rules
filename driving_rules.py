@@ -34,7 +34,7 @@ MAX_WORDS = 25 # Sometimes sentences don't get split well...
 
 KEY_PHRASES = ['blind spot', 'traffic light', 'traffic signal', 'safety belt', 'blind spot']
 
-def read_manual(state:str='MA', file_name='MA_Drivers_Manual.pdf'):
+def read_manual(state:str='MA', file_name='MA_Drivers_Manual.pdf', rule_file:str=""):
     """
     File located at 
     MA: https://driving-tests.org/wp-content/uploads/2020/03/MA_Drivers_Manual.pdf
@@ -52,6 +52,7 @@ def read_manual(state:str='MA', file_name='MA_Drivers_Manual.pdf'):
     START_PAGE = 84 # This starts from the rules of the road for MA.
     END_PAGE = MAX_PAGES-1 #START_PAGE+40 # MAX_PAGES
     all_rules = []
+    all_sentences = []
 
     """
     For Mass 82-124
@@ -62,12 +63,24 @@ def read_manual(state:str='MA', file_name='MA_Drivers_Manual.pdf'):
 
         # if page == START_PAGE:
         #     print(pageText)
-        all_rules.extend(extract_if_then(pageText))
+        (rules, sentences) = extract_if_then(pageText)
+        all_rules.extend(rules)
+        all_sentences.extend(sentences)
 
     # closing the pdf file object
     print("Found %d potential rules" % len(all_rules))
     pdfFile.close()
+
+    # if there is a rule file, then write it to file.
+    if rule_file:
+        write_to_text_file(all_sentences, rule_file)
     return all_rules
+
+def write_to_text_file(sentences: List, rule_file: str):
+    with open(rule_file, 'w') as f:
+        for sentence in sentences:
+            f.write(sentence)
+    f.close()
 
 
 def extract_if_then(page_text: str):
@@ -76,16 +89,21 @@ def extract_if_then(page_text: str):
     """
     rule_counter = 0
     rules = []
+    all_sentences = [] # For printing to file
     counter = 0
 
     # sometimes in reading the pdf we will get non-ascii characters
     new_val = page_text.encode("ascii", "ignore")
     updated_text = new_val.decode()
     sentences = updated_text.split('.')
+
     for sentence in sentences:
         tokens = word_tokenize(sentence.lower())
         if IF_ in tokens and len(tokens) < MAX_WORDS:
             words = [word for word in tokens if word.isalpha()]
+            stripped = words[0]
+            for item in words[1::]:
+                stripped+= " %s"%item
             # TODO: check sentence
             rule = extract_rule(sentence)
             if not 'None' in str(rule): # and containsNumber(sentence):
@@ -93,7 +111,8 @@ def extract_if_then(page_text: str):
                 logging.debug("  Rule is:  %s"%rule)
                 counter += 1
                 rules.append(rule)
-    return rules
+                all_sentences.append(stripped+"\n")
+    return (rules, all_sentences)
 
 def containsNumber(value):
     for character in value:
@@ -320,8 +339,8 @@ def has_verb(tags) -> List:
     return verbs
 
 
-def parse_manual(state: str='MA'):
-    rules = read_manual(state)
+def parse_manual(state: str='MA', rule_file: str = ""):
+    rules = read_manual(state, rule_file=rule_file)
     for rule in rules:
         print(rule)
 
@@ -332,6 +351,8 @@ if __name__ == "__main__":
     parser.add_argument('--v', '--verbose', action='store_true')
     parser.add_argument('--state', nargs='?', default='MA',
                         help='Name of the state to parse.  Options are CA (California) and MA (Massachusetts) the default.')
+    parser.add_argument('--f', '--file', action='store_true',
+                        help='Whether to write the rules (in natural language) to file or not.')
 
     args = parser.parse_args()
     if args.v:  # Set verbose messages if you want them.
@@ -339,4 +360,7 @@ if __name__ == "__main__":
 
     state = 'CA' if args.state.startswith('C') or args.state.startswith('c') else 'MA'
     # TODO: Add an option for writing out to file.
-    parse_manual(state)
+    if args.f:
+        parse_manual(state, rule_file='rules_%s.txt'%args.state)
+    else:
+        parse_manual(state)
