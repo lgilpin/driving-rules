@@ -5,13 +5,13 @@ import nltk
 nltk.download('punkt')
 nltk.download('averaged_perceptron_tagger')
 from io import StringIO
-from driving_rules1.high_level import extract_text
-from driving_rules1.converter import TextConverter
-from driving_rules1.layout import LAParams
-from driving_rules1.pdfdocument import PDFDocument
-from driving_rules1.pdfinterp import PDFResourceManager, PDFPageInterpreter
-from driving_rules1.pdfpage import PDFPage
-from driving_rules1.pdfparser import PDFParser
+from pdfminer.converter import TextConverter
+from pdfminer.layout import LAParams
+from pdfminer.pdfdocument import PDFDocument
+from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
+from pdfminer.pdfpage import PDFPage
+from pdfminer.pdfparser import PDFParser
+
 from typing import Tuple, List
 import PyPDF2
 from nltk import pos_tag
@@ -102,7 +102,7 @@ def read_manual(state: str = 'MA', file_name='MA_Drivers_Manual.pdf'):
         interpreter = PDFPageInterpreter(rsrcmgr, device)
 
         # MAX_PAGES = pdfReader.numPages
-        MAX_PAGES = 87
+        MAX_PAGES = 127
         START_PAGE = 84  # This starts from the rules of the road for MA.
         END_PAGE = MAX_PAGES - 1  # START_PAGE+40 # MAX_PAGES
         all_rules = []
@@ -111,8 +111,9 @@ def read_manual(state: str = 'MA', file_name='MA_Drivers_Manual.pdf'):
         for page in PDFPage.create_pages(doc):
             interpreter.process_page(page)
             # x = output_string.getvalue()
+            # print("x = ")
             # all_rules.extend(extract_if_then(x))
-
+        all_rules.extend(extract_if_then(output_string.getvalue()))
     print(output_string.getvalue())
 
 
@@ -398,6 +399,10 @@ if __name__ == "__main__":
     state = 'CA' if args.state.startswith('C') or args.state.startswith('c') else 'MA'
     # TODO: Add an option for writing out to file.
     parse_manual(state)
+
+
+def high_level():
+    return None
 
 
 def high_level():

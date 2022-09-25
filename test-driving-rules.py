@@ -1,5 +1,5 @@
 import unittest
-from driving_rules1 import *
+from driving_rules import *
 from nltk import pos_tag
 
 
