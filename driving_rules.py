@@ -45,76 +45,53 @@ MAX_WORDS = 25  # Sometimes sentences don't get split well...
 
 KEY_PHRASES = ['blind spot', 'traffic light', 'traffic signal', 'safety belt', 'blind spot']
 
+def read_manual(state:str='MA', file_name='MA_Drivers_Manual.pdf', rule_file:str=""):
+    """
+    File located at 
+    MA: https://driving-tests.org/wp-content/uploads/2020/03/MA_Drivers_Manual.pdf
+    CA: https://www.dmv.ca.gov/portal/file/california-driver-handbook-pdf/
+    """
+    if state == 'CA':
+        file_name = 'CA_driving_handbook.pdf'
+    pdfFile = open(LOCAL_PATH + file_name, 'rb')
+    # creating a pdf reader object 
+    pdfReader = PyPDF2.PdfFileReader(pdfFile)
 
-# def read_manual(state: str = 'MA', file_name='MA_Drivers_Manual.pdf'):
-#     """
-#     File located at
-#     MA: https://driving-tests.org/wp-content/uploads/2020/03/MA_Drivers_Manual.pdf
-#     CA: https://www.dmv.ca.gov/portal/file/california-driver-handbook-pdf/
-#     """
-#
-#     if state == 'CA':
-#         file_name = 'CA_driving_handbook.pdf'
-#     txt_file_name = file_name.replace(".pdf", ".txt")
-#
-#     pdfFile = open(LOCAL_PATH + file_name, 'rb')
-#     # creating a pdf reader object
-#     # pdfReader = PyPDF2.PdfFileReader(pdfFile)
-#     pdfReader = extract_text('manuals/MA_Drivers_Manual.pdf')
-#     print(repr(pdfReader))
-#     print(pdfReader)
-#
-#
-#     # printing number of pages in pdf file
-#     MAX_PAGES = pdfReader.numPages
-#     # MAX_PAGES = 87
-#     START_PAGE = 84  # This starts from the rules of the road for MA.
-#     END_PAGE = MAX_PAGES - 1  # START_PAGE+40 # MAX_PAGES
-#     all_rules = []
-#
-#     """
-#     For Mass 82-124
-#     """
-#     txt_file_object = open(LOCAL_TEXT_PATH + txt_file_name, "w")
-#
-#     for page in range(START_PAGE, END_PAGE):
-#         # pageObj = pdfReader.getPage(page)
-#         pageObj = pdfReader.getPage(page)
-#         pageText = pageObj.extractText()
-#         txt_file_object.write(pageText)
-#         # if page == START_PAGE:
-#         #     print(pageText)
-#         all_rules.extend(extract_if_then(pageText))
-#     txt_file_object.close()
-#     # closing the pdf file object
-#     print("Found %d potential rules" % len(all_rules))
-#     pdfFile.close()
-#     return all_rules
+    # printing number of pages in pdf file 
+    MAX_PAGES = pdfReader.numPages
+    #    MAX_PAGES = 10
+    START_PAGE = 84 # This starts from the rules of the road for MA.
+    END_PAGE = MAX_PAGES-1 #START_PAGE+40 # MAX_PAGES
+    all_rules = []
+    all_sentences = []
 
+    """
+    For Mass 82-124
+    """
+    for page in range(START_PAGE, END_PAGE):
+        pageObj = pdfReader.getPage(page)
+        pageText = pageObj.extractText()
 
-def read_manual(state: str = 'MA', file_name='MA_Drivers_Manual.pdf'):
-    output_string = StringIO()
-    with open('manuals/MA_Drivers_Manual.pdf', 'rb') as in_file:
-        parser = PDFParser(in_file)
-        doc = PDFDocument(parser)
-        rsrcmgr = PDFResourceManager()
-        device = TextConverter(rsrcmgr, output_string, laparams=LAParams())
-        interpreter = PDFPageInterpreter(rsrcmgr, device)
+        # if page == START_PAGE:
+        #     print(pageText)
+        (rules, sentences) = extract_if_then(pageText)
+        all_rules.extend(rules)
+        all_sentences.extend(sentences)
 
-        # MAX_PAGES = pdfReader.numPages
-        MAX_PAGES = 127
-        START_PAGE = 84  # This starts from the rules of the road for MA.
-        END_PAGE = MAX_PAGES - 1  # START_PAGE+40 # MAX_PAGES
-        all_rules = []
+    # closing the pdf file object
+    print("Found %d potential rules" % len(all_rules))
+    pdfFile.close()
 
-        print("hi", PDFPage.create_pages(doc))
-        for page in PDFPage.create_pages(doc):
-            interpreter.process_page(page)
-            # x = output_string.getvalue()
-            # print("x = ")
-            # all_rules.extend(extract_if_then(x))
-        all_rules.extend(extract_if_then(output_string.getvalue()))
-    print(output_string.getvalue())
+    # if there is a rule file, then write it to file.
+    if rule_file:
+        write_to_text_file(all_sentences, rule_file)
+    return all_rules
+
+def write_to_text_file(sentences: List, rule_file: str):
+    with open(rule_file, 'w') as f:
+        for sentence in sentences:
+            f.write(sentence)
+    f.close()
 
 
 def extract_if_then(page_text: str):
@@ -123,16 +100,21 @@ def extract_if_then(page_text: str):
     """
     rule_counter = 0
     rules = []
+    all_sentences = [] # For printing to file
     counter = 0
 
     # sometimes in reading the pdf we will get non-ascii characters
     new_val = page_text.encode("ascii", "ignore")
     updated_text = new_val.decode()
     sentences = updated_text.split('.')
+
     for sentence in sentences:
         tokens = word_tokenize(sentence.lower())
         if IF_ in tokens and len(tokens) < MAX_WORDS:
             words = [word for word in tokens if word.isalpha()]
+            stripped = words[0]
+            for item in words[1::]:
+                stripped+= " %s"%item
             # TODO: check sentence
             rule = extract_rule(sentence)
             if not 'None' in str(rule):  # and containsNumber(sentence):
@@ -140,7 +122,8 @@ def extract_if_then(page_text: str):
                 logging.debug("  Rule is:  %s" % rule)
                 counter += 1
                 rules.append(rule)
-    return rules
+                all_sentences.append(stripped+"\n")
+    return (rules, all_sentences)
 
 
 def containsNumber(value):
@@ -379,8 +362,8 @@ def has_verb(tags) -> List:
     return verbs
 
 
-def parse_manual(state: str = 'MA'):
-    rules = read_manual(state)
+def parse_manual(state: str='MA', rule_file: str = ""):
+    rules = read_manual(state, rule_file=rule_file)
     for rule in rules:
         print(rule)
 
@@ -391,6 +374,8 @@ if __name__ == "__main__":
     parser.add_argument('--v', '--verbose', action='store_true')
     parser.add_argument('--state', nargs='?', default='MA',
                         help='Name of the state to parse.  Options are CA (California) and MA (Massachusetts) the default.')
+    parser.add_argument('--f', '--file', action='store_true',
+                        help='Whether to write the rules (in natural language) to file or not.')
 
     args = parser.parse_args()
     if args.v:  # Set verbose messages if you want them.
@@ -402,8 +387,7 @@ if __name__ == "__main__":
 
 
 def high_level():
-    return None
-
-
-def high_level():
-    return None
+    if args.f:
+        parse_manual(state, rule_file='rules_%s.txt'%args.state)
+    else:
+        parse_manual(state)
