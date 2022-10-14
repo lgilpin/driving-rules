@@ -1,14 +1,26 @@
 # importing required modules
 import argparse
-from typing import Tuple, List
+import nltk
 
+nltk.download('punkt')
+nltk.download('averaged_perceptron_tagger')
+from io import StringIO
+from pdfminer.converter import TextConverter
+from pdfminer.layout import LAParams
+from pdfminer.pdfdocument import PDFDocument
+from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
+from pdfminer.pdfpage import PDFPage
+from pdfminer.pdfparser import PDFParser
+
+from typing import Tuple, List
 import PyPDF2
 from nltk import pos_tag
 from nltk.tokenize import word_tokenize, sent_tokenize
-#from production import IF, AND, OR, NOT, THEN, DELETE, forward_chain, pretty_goal_tree
+# from production import IF, AND, OR, NOT, THEN, DELETE, forward_chain, pretty_goal_tree
 import re
 import logging
 
+LOCAL_TEXT_PATH = 'manual_text/'
 LOCAL_PATH = 'manuals/'
 IF_ = 'if'
 THEN = 'then'
@@ -27,10 +39,9 @@ TO_BE = ['is', 'am', 'are', 'was', 'were', 'be', 'being', 'been']
 TO_HAVE = ['have', 'has', 'had', 'having']
 NOTS = ['not', 'never']
 
-
 RE_SPLITTERS = '[:,.]'
 CONJS = [AND, OR]
-MAX_WORDS = 25 # Sometimes sentences don't get split well...
+MAX_WORDS = 25  # Sometimes sentences don't get split well...
 
 KEY_PHRASES = ['blind spot', 'traffic light', 'traffic signal', 'safety belt', 'blind spot']
 
@@ -106,13 +117,14 @@ def extract_if_then(page_text: str):
                 stripped+= " %s"%item
             # TODO: check sentence
             rule = extract_rule(sentence)
-            if not 'None' in str(rule): # and containsNumber(sentence):
-                logging.debug("Root it %s"%sentence.strip())
-                logging.debug("  Rule is:  %s"%rule)
+            if not 'None' in str(rule):  # and containsNumber(sentence):
+                logging.debug("Root it %s" % sentence.strip())
+                logging.debug("  Rule is:  %s" % rule)
                 counter += 1
                 rules.append(rule)
                 all_sentences.append(stripped+"\n")
     return (rules, all_sentences)
+
 
 def containsNumber(value):
     for character in value:
@@ -120,11 +132,12 @@ def containsNumber(value):
             return True
     return False
 
+
 def extract_rule(sentence) -> str:
     """
     Tries to extract an IF/THEN rule from a sentence.  Returns it in the form: IF(if triples), THEN(then triples)
     """
-    logging.debug("What is the sentence %s" %sentence)
+    logging.debug("What is the sentence %s" % sentence)
     if_then = re.split(RE_SPLITTERS, sentence)
     # sometimes if is the last part:
     try:
@@ -132,29 +145,30 @@ def extract_rule(sentence) -> str:
 
         if_triples = make_triples_from_phrase(if_clause)
         then_triples = make_triples_from_phrase(then_clause)
-        return 'IF %s, THEN %s'%(if_triples, then_triples)
+        return 'IF %s, THEN %s' % (if_triples, then_triples)
     except TypeError:
         print("error")
+
 
 def set_if_clause(clauses) -> Tuple:
     """
     Sets the if clause and the then clause for a rule.
     - If there are two parts, then it will return the if then
     """
-    logging.debug("I'm here with %s"%clauses)
+    logging.debug("I'm here with %s" % clauses)
     if len(clauses) == 2:
         if IF_ in clauses[0].lower():
             return tuple(clauses)
         else:
             return clauses[1], clauses[0]
-    elif len(clauses) == 1:   # It didn't get separated
+    elif len(clauses) == 1:  # It didn't get separated
         logging.debug("Didn't split on regex, trying to split on if or then keyword")
         if IF_ in clauses[0]:
             all_tokens = clauses[0].split(IF_)
             then_clause = all_tokens[0]
             full_if = ""
             for part in all_tokens[1::]:
-                full_if += part.strip() +' '
+                full_if += part.strip() + ' '
             return full_if.strip(), then_clause.strip()
     else:  # put the commas back together
         full_then = ""
@@ -163,26 +177,27 @@ def set_if_clause(clauses) -> Tuple:
         return clauses[0], full_then
 
 
-def make_triples_from_phrase(phrase: str, full_phrase:str = ""):
+def make_triples_from_phrase(phrase: str, full_phrase: str = ""):
     """
     Struggled with this one. So I think we need to find all the occurences
     Keeping a full phrase in case....
     """
-    logging.debug("  Making triples for %s"%phrase)
+    logging.debug("  Making triples for %s" % phrase)
     if AND in phrase or OR in phrase or THAT in phrase:
         tokens = word_tokenize(phrase)
         for token in tokens:
             if token == AND.strip():
                 parts = phrase.split(AND, 1)
-                return "AND(%s, %s)" %(make_triples_from_phrase(parts[0]), make_triples_from_phrase(parts[1]))
+                return "AND(%s, %s)" % (make_triples_from_phrase(parts[0]), make_triples_from_phrase(parts[1]))
             elif token == THAT.strip():
                 parts = phrase.split(THAT, 1)
-                return "AND(%s, %s)" %(make_triples_from_phrase(parts[0]), make_triples_from_phrase(parts[1]))
+                return "AND(%s, %s)" % (make_triples_from_phrase(parts[0]), make_triples_from_phrase(parts[1]))
             elif token == OR.strip():
                 parts = phrase.split(OR, 1)
-                return "OR(%s, %s)" %(make_triples_from_phrase(parts[0]), make_triples_from_phrase(parts[1]))
+                return "OR(%s, %s)" % (make_triples_from_phrase(parts[0]), make_triples_from_phrase(parts[1]))
     else:
         return make_one_triple(phrase)
+
 
 def make_conjs(sentences):
     """
@@ -195,9 +210,10 @@ def make_conjs(sentences):
         if current_triple is not None:
             conjs += str(current_triple)
             # Add a comma if it's not the last one.
-            if sentences.index(sentence) != len(sentences) -1:
+            if sentences.index(sentence) != len(sentences) - 1:
                 conjs += ', '
     return conjs
+
 
 def make_one_triple(sentence: str) -> str:
     """
@@ -212,7 +228,7 @@ def make_one_triple(sentence: str) -> str:
 
     tokens = word_tokenize(sentence)
     tags = pos_tag(tokens)
-    logging.debug("is it? %s"%sentence)
+    logging.debug("is it? %s" % sentence)
     # sentence_cleaned = sent_tokenize(sentence)[0]
     # print(tags)
 
@@ -221,7 +237,8 @@ def make_one_triple(sentence: str) -> str:
         start = get_subject(tags)
 
         # TODO: This might be a phrase
-        subject_phrase = get_noun_phrase_if_exists(start[0], sentence_cleaned) # make_noun_phrase(get_noun_phrase(tags))
+        subject_phrase = get_noun_phrase_if_exists(start[0],
+                                                   sentence_cleaned)  # make_noun_phrase(get_noun_phrase(tags))
         subject = subject_phrase if subject_phrase != "" else start[0]
 
         truncated_tags = tags[tags.index(start)::]
@@ -231,11 +248,11 @@ def make_one_triple(sentence: str) -> str:
             relation = has_in(truncated_tags)[0]
             obj = get_object(truncated_tags[truncated_tags.index(has_in(truncated_tags))::])[0]
             object_phrase = get_noun_phrase_if_exists(obj, sentence_cleaned)
-            return '(%s, %s, %s)' %(subject, relation, obj if object_phrase == "" else obj)
+            return '(%s, %s, %s)' % (subject, relation, obj if object_phrase == "" else obj)
         # Otherwise can SVO or SPO (last NN->)
         elif has_verb(tags):  # Changed from truncated
             verb = has_verb(tags)[0][0]
-            logging.debug("found verb %s"%verb)
+            logging.debug("found verb %s" % verb)
             if verb_before_subject(tags):
                 obj = subject
                 subject = 'self'
@@ -245,20 +262,21 @@ def make_one_triple(sentence: str) -> str:
                 obj = obj if object_phrase == "" else object_phrase
             if verb in TO_BE:
                 logging.debug("Found an isA type verb")
-                return '(%s, %s, %s)' %(subject, 'isA', obj)
+                return '(%s, %s, %s)' % (subject, 'isA', obj)
             elif verb in TO_HAVE:
                 logging.debug("Found an hasA type verb")
-                return '(%s, %s, %s)' %(subject, 'hasA', obj)
+                return '(%s, %s, %s)' % (subject, 'hasA', obj)
             else:
                 relation = verb
         if neg:
-            return 'NOT(%s, %s, %s)' %(subject, relation, obj)
+            return 'NOT(%s, %s, %s)' % (subject, relation, obj)
         else:
-            return '(%s, %s, %s)' %(subject, relation, obj)
+            return '(%s, %s, %s)' % (subject, relation, obj)
     except TypeError:
-        logging.debug("Could not make a triple for text %s"%sentence)
+        logging.debug("Could not make a triple for text %s" % sentence)
     except IndexError:
-        logging.debug("Sentence: %s is blank"%sentence)
+        logging.debug("Sentence: %s is blank" % sentence)
+
 
 def has_in(tags):
     for tag in tags:
@@ -266,11 +284,13 @@ def has_in(tags):
             return tag
     return None
 
+
 def get_object(tags):
     for tag in tags:
         if tag[1] in SUBJECTS:
             return tag
     return tags[-1]
+
 
 def get_subject(tags):
     """
@@ -279,6 +299,7 @@ def get_subject(tags):
     for tag in tags:
         if tag[1] in SUBJECTS:
             return tag
+
 
 def get_noun_phrase(tags):
     """
@@ -301,11 +322,13 @@ def get_noun_phrase(tags):
     else:
         return None
 
+
 def get_noun_phrase_if_exists(start, sentence) -> str:
     for phrase in KEY_PHRASES:
         if start in phrase and phrase in sentence:
             return phrase
-    else: return ""
+    else:
+        return ""
 
 
 def make_noun_phrase(list_of_tokens) -> str:
@@ -360,6 +383,10 @@ if __name__ == "__main__":
 
     state = 'CA' if args.state.startswith('C') or args.state.startswith('c') else 'MA'
     # TODO: Add an option for writing out to file.
+    parse_manual(state)
+
+
+def high_level():
     if args.f:
         parse_manual(state, rule_file='rules_%s.txt'%args.state)
     else:
