@@ -2,11 +2,18 @@ import unittest
 from driving_rules import *
 from nltk import pos_tag
 
+class TripleCases(unittest.TestCase):
+    def test_make_triple(self):
+        if_sample = 'If you are stopped at a traffic light that turns green'
+        test = make_triples_from_phrase(if_sample)
+        goal = 'AND((self, at, traffic light), (traffic light, isA green)'
+        # print(test)
 
-class MyTestCase(unittest.TestCase):
-    def test_something(self):
-        self.assertEqual(True, True)  # add assertion here
+        multiple = "your traffic signal is red or if it is red and yellow"
+        test = make_triples_from_phrase(multiple)
+        print(test)
 
+class SubjectCases(unittest.TestCase):
     def test_get_subject_phrase(self):
         sample = 'If you are stopped at a traffic light'
         tags = pos_tag(sample.split(" "))
@@ -23,16 +30,8 @@ class MyTestCase(unittest.TestCase):
         test = make_noun_phrase(sample)
         self.assertEqual('traffic light', test)
 
-    def test_make_triple(self):
-        if_sample = 'If you are stopped at a traffic light that turns green'
-        test = make_triples_from_phrase(if_sample)
-        goal = 'AND((self, at, traffic light), (traffic light, isA green)'
-        # print(test)
 
-        multiple = "your traffic signal is red or if it is red and yellow"
-        test = make_triples_from_phrase(multiple)
-        print(test)
-
+class RuleExtract(unittest.TestCase):
     def test_if_clause(self):
         tough = 'You must yield to pedestrians if your traffic signal is red or if it is red and yellow'
         result = set_if_clause([tough])
@@ -167,8 +166,7 @@ class Illinois(unittest.TestCase):
         sample3 = "In a business or residential area, you must give a continuous turn signal for at least 100 feet " \
                   "before turning. In other areas, the signal must be given at least 200 feet before turning. "
         test3 = extract_rule(sample3)
-        self.assertEqual(test3, 'IF((self, must, turn), (self, in a, residential area)) THEN (self, turn signal, '
-                                '100 ft before)')
+        self.assertEqual(test3, 'IF OR((business, isA, None), (area, isA, None)), THEN (turn, for, feet)')
         print("s3: %s" % test3)
         # Expected 'IF OR((business, isA, None), (area, isA, None)), THEN (turn, for, feet)'
         # Output  IF((self, must, turn), (self, in a, residential area)) THEN (self, turn signal, '

@@ -4,13 +4,6 @@ import nltk
 
 nltk.download('punkt')
 nltk.download('averaged_perceptron_tagger')
-from io import StringIO
-from pdfminer.converter import TextConverter
-from pdfminer.layout import LAParams
-from pdfminer.pdfdocument import PDFDocument
-from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
-from pdfminer.pdfpage import PDFPage
-from pdfminer.pdfparser import PDFParser
 
 from typing import Tuple, List
 import PyPDF2
