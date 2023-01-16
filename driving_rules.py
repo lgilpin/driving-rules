@@ -14,7 +14,7 @@ import re
 import logging
 
 LOCAL_TEXT_PATH = 'manual_text/'
-LOCAL_PATH = 'manuals/'
+LOCAL_PATH = '../driving-rules-temp/manuals/'
 IF_ = 'if'
 THEN = 'then'
 NEVER = 'never'
@@ -48,10 +48,10 @@ def read_manual(state:str='MA', file_name='MA_Drivers_Manual.pdf', rule_file:str
         file_name = 'CA_driving_handbook.pdf'
     pdfFile = open(LOCAL_PATH + file_name, 'rb')
     # creating a pdf reader object 
-    pdfReader = PyPDF2.PdfFileReader(pdfFile)
+    pdfReader = PyPDF2.PdfReader(pdfFile)
 
     # printing number of pages in pdf file 
-    MAX_PAGES = pdfReader.numPages
+    MAX_PAGES = len(pdfReader.pages)
     #    MAX_PAGES = 10
     START_PAGE = 84 # This starts from the rules of the road for MA.
     END_PAGE = MAX_PAGES-1 #START_PAGE+40 # MAX_PAGES
@@ -62,8 +62,8 @@ def read_manual(state:str='MA', file_name='MA_Drivers_Manual.pdf', rule_file:str
     For Mass 82-124
     """
     for page in range(START_PAGE, END_PAGE):
-        pageObj = pdfReader.getPage(page)
-        pageText = pageObj.extractText()
+        pageObj = pdfReader.pages[page]
+        pageText = pageObj.extract_text()
 
         # if page == START_PAGE:
         #     print(pageText)
