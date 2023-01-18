@@ -1,3 +1,5 @@
 Run the commands with:
+Install dependencies with =pip3 install -r requirements.txt=
+
 =python3 driving_rules.py= (for Massachusetts)
 =python3 driving_rules.py --state CA= (for California)
