@@ -1,0 +1,4 @@
+#Requirements for driving_rules.py
+nltk
+argparse
+PyPDF2 < 3.0.0
