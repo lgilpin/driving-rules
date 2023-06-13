@@ -1,6 +1,7 @@
 # importing required modules
 import argparse
 import nltk
+#import spacy
 
 nltk.download('punkt')
 nltk.download('averaged_perceptron_tagger')
@@ -31,7 +32,8 @@ KEYWORDS = ['white stop line','crosswalk line']
 SUBJECTS = ['NN', 'NNP', 'NNS']
 
 TO_BE = ['is', 'am', 'are', 'was', 'were', 'be', 'being', 'been']
-SIGN_TYPES = ['white stop line','crosswalk',] # Add more stop signs prolly would need help identifying these
+# Add more stop signs after identifying more from the text. ###TODO####
+SIGN_TYPES = ['white stop line','crosswalk',] 
 TO_HAVE = ['have', 'has', 'had', 'having']
 NOTS = ['not', 'never']
 
@@ -40,8 +42,15 @@ CONJS = [AND, OR]
 MAX_WORDS = 25  # Sometimes sentences don't get split well...
 
 KEY_PHRASES = ['blind spot', 'traffic light', 'traffic signal', 'safety belt', 'blind spot']
-
-def read_manual(state:str='MA', file_name='MA_Drivers_Manual.pdf', rule_file:str=""):
+# spaCy sample integration to improve identification of token dependencies ###TODO###
+"""def spacyRunT():
+    nlp = spacy.load("en_core_web_sm")
+    txt = "If light is red, then stop and proceed."
+    doc = nlp(txt)
+    #for token in doc:
+       # print(token.pos_)
+"""
+def read_manual(state:str='CA', file_name='MA_Drivers_Manual.pdf', rule_file:str=""):
     """
     File located at 
     MA: https://driving-tests.org/wp-content/uploads/2020/03/MA_Drivers_Manual.pdf
@@ -55,9 +64,9 @@ def read_manual(state:str='MA', file_name='MA_Drivers_Manual.pdf', rule_file:str
 
     # printing number of pages in pdf file 
     #MAX_PAGES = pdfReader.numPages
-    MAX_PAGES = 20
+    MAX_PAGES = 35
     #    MAX_PAGES = 10
-    START_PAGE = 91 # This starts from the rules of the road for MA.# added change by RD start at 88-106(89)
+    START_PAGE = 54 #88 # This starts from the rules of the road for MA.# added change by RD start at 88-106(89)
     END_PAGE = START_PAGE+MAX_PAGES-1 #START_PAGE+40 # MAX_PAGES# testint page by page
     all_rules = []
     all_sentences = []
@@ -69,9 +78,6 @@ def read_manual(state:str='MA', file_name='MA_Drivers_Manual.pdf', rule_file:str
     for page in range(START_PAGE, END_PAGE):
         pageObj = pdfReader.getPage(page)
         pageText = pageObj.extractText()
-        #print(pageText)
-        # if page == START_PAGE:
-        #     print(pageText)
         (rules, sentences) = extract_if_then(pageText)
         all_rules.extend(rules)
         all_sentences.extend(sentences)
@@ -101,8 +107,7 @@ def extract_if_then(page_text: str):
     all_sentences = [] # For printing to file
     counter = 0
 
-    # sometimes in reading the pdf we will get non-ascii characters
-   # print(page_text.isutf8())
+   # Sometimes in reading the pdf we will get non-ascii characters
     new_val = page_text.encode("utf8", "ignore")
     updated_text = new_val.decode()
     sentences = updated_text.split('.')
@@ -118,7 +123,6 @@ def extract_if_then(page_text: str):
             stripped = words[0]
             for item in words[1::]:
                 stripped+= " %s"%item
-            # TODO: check sentence
             rule = extract_rule(sentence)
             if not 'None' in str(rule):  # and containsNumber(sentence):
                 logging.debug("Root it %s" % sentence.strip())
@@ -223,89 +227,7 @@ def keyword_selection(phrase:str,obj: str):
         if kword in phrase:
              return kword
     return obj
-        
-    
-#def make_triples_from_phrase_original(phrase: str, full_phrase:str = ""):
-    """
-    Struggled with this one. So I think we need to find all the occurences
-    Keeping a full phrase in case....
-    """
-    # Original function with original functionality the above function is the v2.
-    # probably keep a global variable to keep the list of triples or keep a triple variable which has the previous variable but the issue here would be if there is 
-    # a  multiple split in the sentence then its hard to keep track
-    # we need to change the workflow for this function to adapt to the changes in make_one_triple
-    # How to split the work to independant study and MS project works and the timeline for MS might be extended.
-    # first order logic is used in the secondary system.
-    # probably store a set of keywords that represents lines, signs, boards, speed limits etc
-    # Few examples :
-    """ If there is a 
-       white stop line or crosswalk line, you must stop before the line
-       In this case rule not generated: what we need is
-       IF OR((self, isA, white stop line),(self,isA, crosswalk line)) THEN (stop, before, line)
-       currently it is (self, isA, stop) ln263 we need the list of keywords to be picked.
-       
-       Second case: If there are no lines, you 
-    must stop as close to the intersection as needed to see traffic in both directions
 
-    how should the triple be even formed?
-
-      Third case: If you are crossing an intersection, make sure 
-    you have enough room to make it completely through
-
-    Currently this is how it is formed: IF (self, isA, intersection), THEN (room, through, through)
-    
-    10/24/2022 updates: made a temporary list of keywords which swaps out in the triple when we have the wrong object picked up,
-    built a function called keyword_selection.
-    
-    10/31/2022 : Some tasks we could work on :- Task-1:find more keywords in sentence cases to see if rule makes sense or not
-    Task-2: get the multi-liason algo setup and working to check different triples versions for some of the sentences we have and see 
-    if existing triple is better or Mliason triple is better.
-    Task - 3: Find more triple cases that dont make sense.
-    #####################################################
-    
-    11/07/2022 : self refers to car? if so most triples sometimes are picked up wrong. 
-    Page 1 : If you are already stopped at an intersection or a stop 
-line, you may not proceed -> Not generating a triple.
-   >Page 1-2 : Sentence:  If you are turning left on a steady green light, you must yield to oncoming 
-traffic
-
->IF (self, isA, light), THEN (self, yield, traffic)
-how to fix this?
-> AND seems to be working might need to make a separate function to prevent code redundancy.
-> Next task to focus on is making triples a lil better.
- 
-    
-       
-    """
- """   logging.debug("  Making triples for %s"%phrase)
-    if AND in phrase or OR in phrase or THAT in phrase:
-        tokens = word_tokenize(phrase)
-        for token in tokens:
-            if token == AND.strip():
-                parts = phrase.split(AND, 1)
-                triple1 = make_triples_from_phrase(parts[0])
-                if triple1 is not None:
-                 pTriple = triple1.strip('()').split(',')
-                triple2 = make_triples_from_phrase(parts[1])
-                #Make a keyword selection check here
-                #]keyword_selection(phrase,triple1)
-                #keyword_selection(phrase,triple2)
-                return "AND(%s, %s)" %(triple1, triple2)
-            elif token == THAT.strip():
-                parts = phrase.split(THAT, 1)
-                triple1 = make_triples_from_phrase(parts[0])
-                if triple1 is not None:
-                    pTriple = triple1.strip('()').split(',')
-                triple2 = make_triples_from_phrase(parts[1])
-                return "AND(%s, %s)" %(triple1, triple2)
-            elif token == OR.strip():
-                parts = phrase.split(OR, 1)
-                # "If there is a white stop line or crosswalk line" then triple is AND(self,isA,stop)(crosswalk,isA,None)
-                return "OR(%s, %s)" %(make_triples_from_phrase(parts[0]), make_triples_from_phrase(parts[1]))
-                
-    else:
-        return make_one_triple(phrase)
-"""
 def make_conjs(sentences):
     """
     Makes a conjunction from sentences.
