@@ -5,4 +5,4 @@ PyPDF2 < 3.0.0
 
 #Requirments for driving_rules_CN.py
 jieba
-googletrans
+googletrans == 4.0.0-rc1
