@@ -4,3 +4,4 @@ Install required dependencies with:
 Run the commands with:
 =python3 driving_rules.py= (for Massachusetts)
 =python3 driving_rules.py --state CA= (for California)
+=python3 driving_rules_CN.py= (for California_Chinese)
