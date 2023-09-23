@@ -73,7 +73,7 @@ def read_manual(state:str='MA', file_name='MA_Drivers_Manual.pdf', rule_file:str
         all_rules.extend(rules)
         all_sentences.extend(sentences)
 
-    # closing the pdf file object
+    # closing the pdf file object.
     print("Found %d potential rules" % len(all_rules))
     pdfFile.close()
 
