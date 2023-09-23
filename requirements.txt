@@ -2,3 +2,7 @@
 nltk
 argparse
 PyPDF2 < 3.0.0
+
+#Requirments for driving_rules_CN.py
+jieba
+googletrans
