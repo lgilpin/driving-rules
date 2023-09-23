@@ -58,6 +58,8 @@ def read_manual(state:str='CA', file_name='MA_Drivers_Manual.pdf', rule_file:str
     """
     if state == 'CA':
         file_name = 'CA_driving_handbook.pdf'
+    
+    
     pdfFile = open(LOCAL_PATH + file_name, 'rb')
     # creating a pdf reader object 
     pdfReader = PyPDF2.PdfFileReader(pdfFile)
